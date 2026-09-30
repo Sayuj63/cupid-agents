@@ -1,0 +1,76 @@
+{% extends "base.html" %}{% import "_m.html" as m %}
+{% block title %}Date: {{ a.profile.name if a else d.a }} × {{ b.profile.name if b else d.b }}{% endblock %}
+{% block body %}
+{% set pa = a.profile if a else {} %}{% set pb = b.profile if b else {} %}
+<section class="card p-6 text-center">
+  <div class="text-xs uppercase tracking-widest text-rose-500 font-bold">Agent date #{{ d.id }}</div>
+  <div class="flex items-center justify-center gap-6 mt-4">
+    <a href="{{ L.person(d.a) }}" class="flex flex-col items-center gap-2">{{ m.avatar(L, d.a, pa.name, 20) }}<span class="font-semibold">{{ pa.name }}</span><span class="text-xs text-stone-500">represented by their agent</span></a>
+    <div class="text-4xl">💬</div>
+    <a href="{{ L.person(d.b) }}" class="flex flex-col items-center gap-2">{{ m.avatar(L, d.b, pb.name, 20) }}<span class="font-semibold">{{ pb.name }}</span><span class="text-xs text-stone-500">represented by their agent</span></a>
+  </div>
+  <div class="mt-4 text-stone-700">📍 {{ d.venue }}</div>
+  <div class="mt-4 flex justify-center gap-2">
+    <button id="replay" class="grad text-white rounded-xl px-4 py-2 text-sm font-semibold">▶ Replay the date</button>
+    <button id="toggleThoughts" class="rounded-xl px-4 py-2 text-sm font-semibold border border-violet-200 text-violet-700 bg-violet-50">🔒 Hide agents' private thoughts</button>
+  </div>
+</section>
+
+<section class="card p-4 md:p-6 mt-6"><div id="chat" class="space-y-4 min-h-[200px]"></div></section>
+
+<section id="verdicts" class="grid md:grid-cols-2 gap-6 mt-6 {% if d.status != 'done' %}hidden{% endif %}">
+  {% for who, v, other in [(pa, d.verdict_a or {}, pb), (pb, d.verdict_b or {}, pa)] %}
+  <div class="card p-6">
+    <div class="text-xs uppercase tracking-widest text-violet-600 font-bold">Private report to {{ who.name }}</div>
+    <div class="mt-2 flex items-center justify-between"><div class="text-2xl font-extrabold">{{ v.overall }}/10</div>
+      <span class="chip {% if v.second_date %}green{% endif %}">{% if v.second_date %}✅ Wants a second date{% else %}✋ No second date{% endif %}</span></div>
+    {% for k in ['chemistry','values_fit','lifestyle_fit','needs_met'] %}
+    <div class="mt-2"><div class="flex justify-between text-xs"><span class="capitalize">{{ k.replace('_',' ') }}</span><span>{{ v.get(k) }}</span></div><div class="bar"><div style="width: {{ (v.get(k) or 0) * 10 }}%"></div></div></div>{% endfor %}
+    <p class="mt-4 text-sm text-stone-700">“{{ v.report }}”</p>
+    <p class="mt-3 text-xs"><b class="text-emerald-700">Highlight:</b> {{ v.highlight }}</p>
+    <p class="mt-1 text-xs"><b class="text-amber-700">Concern:</b> {{ v.concern }}</p>
+  </div>{% endfor %}
+</section>
+
+<script id="data" type="application/json">{{ {"a": d.a, "transcript": d.transcript or [], "photos": {d.a: L.photo(d.a), d.b: L.photo(d.b)}}|tojson }}</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const chat = document.getElementById('chat');
+let showThoughts = true, timer = null;
+const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function bubble(m) {
+  const right = m.speaker !== D.a;
+  const el = document.createElement('div');
+  el.className = 'flex gap-3 fade-in ' + (right ? 'flex-row-reverse text-right' : '');
+  el.innerHTML = `<img src="${D.photos[m.speaker]}" class="avatar w-9 h-9 rounded-full" onerror="this.style.visibility='hidden'">
+    <div class="flex flex-col ${right ? 'items-end' : 'items-start'}"><div class="text-xs text-stone-500 mb-1">${esc(m.name)}'s agent</div>
+    <div class="bubble ${right ? 'right' : 'left'} text-left">${m.action ? `<div class="text-xs italic text-stone-500 mb-1">*${esc(m.action)}*</div>` : ''}${esc(m.say)}</div>
+    ${m.thought ? `<div class="thought text-left max-w-[78%] ${showThoughts ? '' : 'hidden'}">🔒 private note to ${esc(m.name.split(' ')[0])}: ${esc(m.thought)}</div>` : ''}</div>`;
+  return el;
+}
+function typing(m) {
+  const el = document.createElement('div');
+  el.className = 'flex gap-3 ' + (m.speaker !== D.a ? 'flex-row-reverse' : '');
+  el.innerHTML = `<img src="${D.photos[m.speaker]}" class="avatar w-9 h-9 rounded-full"><div class="bubble ${m.speaker !== D.a ? 'right' : 'left'} typing"><span></span><span></span><span></span></div>`;
+  return el;
+}
+function play(fast) {
+  clearTimeout(timer); chat.innerHTML = '';
+  document.getElementById('verdicts').classList.add('hidden');
+  let i = 0;
+  const step = () => {
+    if (i >= D.transcript.length) { document.getElementById('verdicts').classList.remove('hidden'); return; }
+    const m = D.transcript[i++], t = typing(m); chat.appendChild(t);
+    timer = setTimeout(() => { t.replaceWith(bubble(m)); t.scrollIntoView({block: 'nearest'}); timer = setTimeout(step, fast ? 50 : 700); }, fast ? 30 : Math.min(2200, 600 + m.say.length * 12));
+  };
+  step();
+}
+document.getElementById('replay').onclick = () => play(false);
+document.getElementById('toggleThoughts').onclick = (e) => {
+  showThoughts = !showThoughts;
+  document.querySelectorAll('.thought').forEach(t => t.classList.toggle('hidden', !showThoughts));
+  e.target.textContent = showThoughts ? "🔒 Hide agents' private thoughts" : "🔓 Show agents' private thoughts";
+};
+play(false);
+</script>
+{% endblock %}

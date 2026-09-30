@@ -1,0 +1,10 @@
+.env
+data/
+tools/
+__pycache__/
+*.pyc
+.venv/
+PLAYBOOK.md
+prompts/
+bot/
+.mcp.json

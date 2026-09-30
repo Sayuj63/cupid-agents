@@ -1,0 +1,98 @@
+{% extends "base.html" %}{% import "_m.html" as m %}
+{% block title %}{{ pr.name }} · Cupid Agents{% endblock %}
+{% block body %}
+{% set ig = raw.instagram %}{% set li = raw.linkedin %}
+<section class="card p-6 md:p-8 grad text-white border-0">
+  <div class="flex flex-col md:flex-row gap-6 md:items-center">
+    <img src="{{ L.photo(p.id) }}" class="avatar w-28 h-28 rounded-3xl ring-4 ring-white/40" alt="{{ pr.name }}" onerror="this.style.display='none'">
+    <div class="flex-1">
+      <div class="text-white/80 text-sm">{{ pr.location }}{% if pr.pronouns %} · {{ pr.pronouns }}{% endif %}</div>
+      <h1 class="display text-4xl font-bold">{{ pr.name }}</h1>
+      <div class="mt-1 text-white/90">{{ pr.headline }}</div>
+      <div class="mt-3 text-xl italic">“{{ pr.vibe }}”</div>
+    </div>
+    <div class="flex flex-col gap-2 text-sm">
+      <a href="{{ p.linkedin_url }}" target="_blank" class="bg-white/15 hover:bg-white/25 rounded-xl px-4 py-2">LinkedIn ↗</a>
+      <a href="{{ p.instagram_url }}" target="_blank" class="bg-white/15 hover:bg-white/25 rounded-xl px-4 py-2">Instagram @{{ ig.username }} ↗</a>
+    </div>
+  </div>
+</section>
+
+<section class="mt-4 card p-4 text-sm text-stone-600 flex flex-wrap gap-x-6 gap-y-2">
+  <span><b>What the agent read:</b></span>
+  <span class="src-li">LinkedIn: {{ (li.text|length) // 1000 }}k chars of profile + {{ (li.activity_text|length) // 1000 }}k chars of recent activity</span>
+  <span class="src-ig">Instagram: bio + {{ ig.posts|length }} recent posts (captions, locations, image descriptions) · {{ "{:,}".format(ig.followers or 0) }} followers</span>
+  <span>Nothing else.</span>
+</section>
+
+<div class="grid lg:grid-cols-3 gap-6 mt-6">
+<div class="lg:col-span-2 space-y-6">
+  <section class="card p-6"><h2 class="font-bold text-lg mb-2">The agent's read</h2><p class="text-stone-700 leading-relaxed">{{ pr.summary }}</p>
+    <div class="grid sm:grid-cols-2 gap-3 mt-4 text-sm"><div><span class="text-stone-500">Work:</span> {{ pr.occupation }}</div><div><span class="text-stone-500">Education:</span> {{ pr.education }}</div><div class="sm:col-span-2"><span class="text-stone-500">Life stage:</span> {{ pr.life_stage }}</div></div></section>
+
+  <section class="card p-6"><h2 class="font-bold text-lg mb-3">Needs <span class="text-sm font-normal text-stone-500">· what they need from a partner</span></h2>
+    <div class="space-y-3">{% for n in pr.needs or [] %}
+      <div class="border-l-4 border-rose-300 pl-4"><div class="font-semibold">{{ n.need }}</div><div class="text-sm text-stone-600">{{ n.why }}</div>
+      <div class="text-xs text-stone-500 mt-1">{{ m.src(n.source) }} “{{ n.evidence }}”</div></div>{% endfor %}</div></section>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <section class="card p-6"><h2 class="font-bold text-lg mb-3">Hobbies</h2><div class="space-y-2">{% for h in pr.hobbies or [] %}
+      <div><span class="chip">{{ h.name }}</span> <span class="text-xs text-stone-500">{{ m.src(h.source) }} {{ h.evidence }}</span></div>{% endfor %}</div></section>
+    <section class="card p-6"><h2 class="font-bold text-lg mb-3">Interests</h2><div class="space-y-2">{% for h in pr.interests or [] %}
+      <div><span class="chip blue">{{ h.name }}</span> <span class="text-xs text-stone-500">{{ m.src(h.source) }} {{ h.evidence }}</span></div>{% endfor %}</div></section>
+  </div>
+
+  <section class="card p-6"><h2 class="font-bold text-lg mb-3">Values</h2><div class="grid sm:grid-cols-2 gap-3">{% for v in pr['values'] or [] %}
+    <div><span class="chip green">{{ v.name }}</span><div class="text-xs text-stone-500 mt-1">{{ m.src(v.source) }} {{ v.evidence }}</div></div>{% endfor %}</div></section>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <section class="card p-6"><h2 class="font-bold text-lg mb-3">Personality</h2>
+      {% set per = pr.personality or {} %}
+      {% for k in ['openness','conscientiousness','extraversion','agreeableness','emotional_stability'] %}{% set v = per.get(k) or 0 %}
+      <div class="mb-2"><div class="flex justify-between text-xs"><span class="capitalize">{{ k.replace('_',' ') }}</span><span>{{ v }}</span></div><div class="bar"><div style="width: {{ v }}%"></div></div></div>{% endfor %}
+      <p class="text-xs text-stone-500 mt-2">{{ per.notes }}</p></section>
+    <section class="card p-6"><h2 class="font-bold text-lg mb-3">How they talk</h2><p class="text-sm text-stone-700">{{ pr.communication_style }}</p>
+      <div class="mt-3 space-y-1">{% for q in pr.voice_samples or [] %}<div class="text-sm italic text-stone-600">“{{ q }}”</div>{% endfor %}</div></section>
+  </div>
+
+  <section class="card p-6"><h2 class="font-bold text-lg mb-3">Lifestyle</h2><div class="grid sm:grid-cols-2 gap-3 text-sm">{% for k, v in (pr.lifestyle or {}).items() %}
+    <div><div class="text-stone-500 capitalize text-xs">{{ k.replace('_',' ') }}</div><div>{{ v }}</div></div>{% endfor %}</div></section>
+
+  <div class="grid md:grid-cols-3 gap-6">
+    <section class="card p-5"><h3 class="font-bold mb-2 text-emerald-700">Green flags</h3><ul class="text-sm space-y-1 list-disc pl-4">{% for x in pr.green_flags or [] %}<li>{{ x }}</li>{% endfor %}</ul></section>
+    <section class="card p-5"><h3 class="font-bold mb-2 text-amber-700">Potential friction</h3><ul class="text-sm space-y-1 list-disc pl-4">{% for x in pr.potential_friction or [] %}<li>{{ x }}</li>{% endfor %}</ul></section>
+    <section class="card p-5"><h3 class="font-bold mb-2 text-rose-700">Likely dealbreakers</h3><ul class="text-sm space-y-1 list-disc pl-4">{% for x in pr.dealbreakers_inferred or [] %}<li>{{ x }}</li>{% endfor %}</ul></section>
+  </div>
+
+  <section class="card p-6 grid md:grid-cols-2 gap-6 text-sm">
+    <div><h3 class="font-bold mb-1">Looking for</h3><p class="text-stone-700">{{ pr.looking_for }}</p></div>
+    <div><h3 class="font-bold mb-1">Ideal first date</h3><p class="text-stone-700">{{ pr.ideal_first_date }}</p></div>
+    <div><h3 class="font-bold mb-1">Love language (inferred)</h3><p class="text-stone-700">{{ pr.love_language_guess }}</p></div>
+    <div><h3 class="font-bold mb-1">Ambitions</h3><ul class="list-disc pl-4 text-stone-700">{% for x in pr.ambitions or [] %}<li>{{ x }}</li>{% endfor %}</ul></div>
+    <div><h3 class="font-bold mb-1">Conversation starters</h3><ul class="list-disc pl-4 text-stone-700">{% for x in pr.conversation_starters or [] %}<li>{{ x }}</li>{% endfor %}</ul></div>
+    <div><h3 class="font-bold mb-1">Other qualities</h3><ul class="text-stone-700 space-y-1">{% for x in pr.other_qualities or [] %}<li><b>{{ x.name }}</b> <span class="text-stone-500">{{ x.evidence }}</span></li>{% endfor %}</ul></div>
+  </section>
+  <p class="text-xs text-stone-500">Data notes: {{ pr.data_notes }}</p>
+</div>
+
+<aside class="space-y-6">
+  <section class="card p-5"><h2 class="font-bold text-lg mb-3">Dates their agent went on</h2>
+    {% for d in dates %}{% set other = d.b if d.a == p.id else d.a %}{% set mine = d.verdict_a if d.a == p.id else d.verdict_b %}{% set theirs = d.verdict_b if d.a == p.id else d.verdict_a %}{% set o = by_id.get(other) %}
+    <a href="{{ L.date(d.id) }}" class="flex items-center gap-3 py-2 border-b border-rose-50 last:border-0 hover:bg-rose-50/50 rounded-lg px-1">
+      {{ m.avatar(L, other, o.name if o else other, 10) }}
+      <div class="min-w-0 flex-1"><div class="font-medium text-sm truncate">{{ o.profile.name if o else other }}</div><div class="text-xs text-stone-500 truncate">{{ d.venue }}</div></div>
+      <div class="text-right text-xs">{{ m.score_pill((mine or {}).get('overall')) }}{% if (mine or {}).get('second_date') and (theirs or {}).get('second_date') %}<div>💞</div>{% endif %}</div>
+    </a>{% else %}<p class="text-sm text-stone-500">No dates yet.</p>{% endfor %}
+  </section>
+  <section class="card p-5"><h2 class="font-bold text-lg mb-1">Best fits for {{ pr.name.split(' ')[0] }}</h2><p class="text-xs text-stone-500 mb-3">Dates weigh most. Everyone else is ranked by both agents' swipe scores.</p>
+    {% for r in ranking[:10] %}
+    <a href="{{ L.person(r.id) }}" class="flex items-center gap-3 py-1.5 hover:bg-rose-50/50 rounded-lg px-1">
+      <span class="w-5 text-xs text-stone-400 font-bold">{{ loop.index }}</span>{{ m.avatar(L, r.id, r.name, 8) }}
+      <div class="min-w-0 flex-1"><div class="text-sm font-medium truncate">{{ r.name }} {% if r.mutual %}💞{% elif r.dated %}<span class="text-[10px] text-rose-500">dated</span>{% endif %}</div><div class="text-[11px] text-stone-500 truncate">{{ r.reason }}</div></div>
+      <span class="text-sm font-bold">{{ r.score }}</span>
+    </a>{% endfor %}
+    <a href="{{ L.rankings }}#r-{{ p.id }}" class="block text-sm text-rose-600 mt-2">Full ranking →</a>
+  </section>
+</aside>
+</div>
+{% endblock %}

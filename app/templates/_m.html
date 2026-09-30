@@ -1,0 +1,26 @@
+{% macro avatar(L, pid, name, size=12) -%}
+<img src="{{ L.photo(pid) }}" alt="{{ name }}" class="avatar w-{{ size }} h-{{ size }} rounded-full shrink-0" loading="lazy"
+     onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect width=%2240%22 height=%2240%22 fill=%22%23ffd6e0%22/><text x=%2250%25%22 y=%2255%25%22 font-size=%2216%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22 fill=%22%23c9184a%22 font-family=%22Arial%22>{{ (name or '?')[:1] }}</text></svg>'">
+{%- endmacro %}
+
+{% macro src(s) -%}
+{% if s == 'linkedin' %}<span class="src-li font-semibold text-[11px]">in</span>{% elif s == 'instagram' %}<span class="src-ig font-semibold text-[11px]">IG</span>{% endif %}
+{%- endmacro %}
+
+{% macro score_pill(v) -%}
+{% if v is not none %}<span class="inline-flex items-center justify-center min-w-[2.2rem] px-2 py-0.5 rounded-full text-xs font-bold {% if v >= 8 %}bg-emerald-100 text-emerald-700{% elif v >= 6 %}bg-amber-100 text-amber-700{% else %}bg-stone-100 text-stone-600{% endif %}">{{ v }}/10</span>{% endif %}
+{%- endmacro %}
+
+{% macro date_card(L, d, by_id) -%}
+{% set a = by_id.get(d.a) %}{% set b = by_id.get(d.b) %}
+{% set va = d.verdict_a or {} %}{% set vb = d.verdict_b or {} %}
+<a href="{{ L.date(d.id) }}" class="card p-4 hover:shadow-md transition block">
+  <div class="flex items-center justify-between">
+    <div class="flex -space-x-3">{{ avatar(L, d.a, a.name if a else d.a, 11) }}{{ avatar(L, d.b, b.name if b else d.b, 11) }}</div>
+    {% if va.second_date and vb.second_date %}<span class="chip">💞 Mutual match</span>{% elif va.second_date or vb.second_date %}<span class="chip amber">One-sided</span>{% else %}<span class="chip" style="background:#f5f5f4;color:#57534e;border-color:#e7e5e4">No spark</span>{% endif %}
+  </div>
+  <div class="mt-3 font-semibold">{{ a.name if a else d.a }} <span class="text-rose-500">×</span> {{ b.name if b else d.b }}</div>
+  <div class="text-sm text-stone-500 line-clamp-2 mt-1">📍 {{ d.venue }}</div>
+  <div class="mt-3 flex items-center gap-2 text-xs text-stone-500">{{ (a.profile.name if a else d.a).split(' ')[0] }} {{ score_pill(va.overall) }} · {{ (b.profile.name if b else d.b).split(' ')[0] }} {{ score_pill(vb.overall) }}</div>
+</a>
+{%- endmacro %}

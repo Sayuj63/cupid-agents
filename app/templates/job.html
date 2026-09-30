@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Creating an agent… · Cupid Agents{% endblock %}
+{% block body %}
+<h1 class="display text-3xl font-bold">Creating their agent <span id="spin" class="grad-text">…</span></h1>
+<div class="grid lg:grid-cols-3 gap-6 mt-6">
+  <div class="card p-5 space-y-3" id="steps">
+    {% for k, label in [('scrape','Read LinkedIn + Instagram'),('analyze','Analyze the person'),('swipe','Swipe through every profile'),('dates','Go on dates'),('rank','Rank best fits')] %}
+    <div class="flex items-center gap-3" data-step="{{ k }}"><span class="w-7 h-7 rounded-full grid place-items-center bg-stone-100 text-stone-400 text-sm">{{ loop.index }}</span><span class="font-medium text-stone-400">{{ label }}</span></div>{% endfor %}
+    <div id="links" class="pt-3 space-y-2"></div>
+    <div id="err" class="hidden text-sm text-rose-600 bg-rose-50 rounded-xl p-3"></div>
+    <div class="pt-2 border-t border-rose-50"><div class="text-xs font-bold text-stone-500 mb-1">Live log</div><div id="log" class="text-xs text-stone-500 space-y-1 max-h-72 overflow-auto font-mono"></div></div>
+  </div>
+  <div class="lg:col-span-2 space-y-6" id="dates"><div class="card p-6 text-stone-500 text-sm" id="waiting">The dates will stream in here live as the agents talk.</div></div>
+</div>
+<script>
+const job = "{{ job }}";
+const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const order = ['scrape','analyze','swipe','dates','rank']; const panels = {};
+function mark(step) {
+  const idx = order.indexOf(step);
+  document.querySelectorAll('[data-step]').forEach(el => {
+    const i = order.indexOf(el.dataset.step), dot = el.children[0], lbl = el.children[1];
+    if (i < idx) { dot.className = 'w-7 h-7 rounded-full grid place-items-center bg-emerald-500 text-white text-sm'; dot.textContent = '✓'; lbl.className = 'font-medium'; }
+    else if (i === idx) { dot.className = 'w-7 h-7 rounded-full grid place-items-center grad text-white text-sm animate-pulse'; lbl.className = 'font-semibold'; }
+  });
+}
+function log(msg) { const d = document.createElement('div'); d.textContent = '› ' + msg; document.getElementById('log').appendChild(d); }
+const es = new EventSource(`/api/jobs/${job}/events`);
+es.onmessage = (ev) => {
+  const e = JSON.parse(ev.data), x = e.data;
+  if (e.kind === 'step') { mark(x.step); log(x.msg); }
+  else if (e.kind === 'log') log(x.msg);
+  else if (e.kind === 'profile') { document.getElementById('links').insertAdjacentHTML('beforeend', `<a class="block grad text-white rounded-xl px-4 py-2 text-sm font-semibold text-center" href="/p/${x.pid}" target="_blank">✨ Profile ready: ${esc(x.name)} → open analysis</a>`); log('Analysis: ' + x.vibe); }
+  else if (e.kind === 'date_start') {
+    document.getElementById('waiting')?.remove();
+    const el = document.createElement('div'); el.className = 'card p-5 fade-in';
+    el.innerHTML = `<div class="flex items-center justify-between"><div class="font-bold">Date #${x.date_id}: ${esc(x.a)} × ${esc(x.b)}</div><a class="text-xs text-rose-600" href="/d/${x.date_id}" target="_blank">open ↗</a></div><div class="text-sm text-stone-500 mt-1">📍 ${esc(x.venue)}</div><div class="space-y-3 mt-4" data-chat></div><div data-verdict class="mt-4"></div>`;
+    document.getElementById('dates').appendChild(el); panels[x.date_id] = el;
+  }
+  else if (e.kind === 'date_message') {
+    const p = panels[x.date_id]; if (!p) return; const chat = p.querySelector('[data-chat]');
+    const right = chat.children.length % 2 === 1;
+    chat.insertAdjacentHTML('beforeend', `<div class="flex fade-in ${right ? 'justify-end' : ''}"><div class="${right ? 'text-right' : ''} max-w-[85%]"><div class="text-xs text-stone-500 mb-1">${esc(x.name)}'s agent</div><div class="bubble ${right ? 'right' : 'left'} text-left max-w-full">${x.action ? `<i class="text-xs text-stone-500">*${esc(x.action)}*</i><br>` : ''}${esc(x.say)}</div>${x.thought ? `<div class="thought text-left">🔒 ${esc(x.thought)}</div>` : ''}</div></div>`);
+  }
+  else if (e.kind === 'date_done') {
+    const p = panels[x.date_id]; if (!p) return; const a = x.verdict_a || {}, b = x.verdict_b || {};
+    p.querySelector('[data-verdict]').innerHTML = `<div class="grid grid-cols-2 gap-3 text-sm"><div class="bg-violet-50 rounded-xl p-3"><b>${a.overall}/10</b> ${a.second_date ? '✅ second date' : '✋ pass'}<div class="text-xs text-stone-600 mt-1">${esc(a.report)}</div></div><div class="bg-violet-50 rounded-xl p-3"><b>${b.overall}/10</b> ${b.second_date ? '✅ second date' : '✋ pass'}<div class="text-xs text-stone-600 mt-1">${esc(b.report)}</div></div></div>${a.second_date && b.second_date ? '<div class="mt-2 chip">💞 Mutual match!</div>' : ''}`;
+  }
+  else if (e.kind === 'done') { mark('zz'); document.getElementById('spin').textContent = '✓ done'; es.close();
+    document.getElementById('links').insertAdjacentHTML('beforeend', `<a class="block border border-rose-200 rounded-xl px-4 py-2 text-sm font-semibold text-center" href="/rankings#r-${x.pid}">See the updated rankings →</a>`); }
+  else if (e.kind === 'error') { const el = document.getElementById('err'); el.textContent = '⚠ ' + x.msg; el.classList.remove('hidden'); document.getElementById('spin').textContent = ''; es.close(); }
+};
+</script>
+{% endblock %}

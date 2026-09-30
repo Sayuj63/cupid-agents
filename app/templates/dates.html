@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% import "_m.html" as m %}
+{% block title %}All dates · Cupid Agents{% endblock %}
+{% block body %}
+<h1 class="display text-3xl font-bold">Every agent date</h1>
+<p class="text-stone-600 mt-1">{{ dates|length }} dates between agents · {{ mutual|length }} ended with both agents asking for a second date 💞. Click any date to watch it replay.</p>
+<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">{% for d in dates %}{{ m.date_card(L, d, by_id) }}{% else %}<p>No dates yet.</p>{% endfor %}</div>
+{% endblock %}

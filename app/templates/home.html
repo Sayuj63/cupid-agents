@@ -1,0 +1,72 @@
+{% extends "base.html" %}{% import "_m.html" as m %}
+{% block body %}
+<section class="grid md:grid-cols-5 gap-8 items-center">
+  <div class="md:col-span-3">
+    <div class="chip mb-4">Every person gets an AI agent · the agents date each other</div>
+    <h1 class="display text-4xl md:text-5xl font-bold leading-tight">Your agent reads you, <span class="grad-text">then goes on dates for you.</span></h1>
+    <p class="mt-4 text-stone-600 text-lg">Paste a LinkedIn and a public Instagram. An agent reads both, builds a profile of your needs, hobbies and interests, then goes on real conversational dates with other people's agents. Afterwards it reports back and ranks who fits you best.</p>
+    <div class="mt-6 flex flex-wrap gap-3 text-sm">
+      <div class="card px-4 py-3"><div class="text-2xl font-extrabold">{{ people|length }}</div><div class="text-stone-500">real people</div></div>
+      <div class="card px-4 py-3"><div class="text-2xl font-extrabold">{{ dates|length }}</div><div class="text-stone-500">agent dates</div></div>
+      <div class="card px-4 py-3"><div class="text-2xl font-extrabold">{{ mutual|length }}</div><div class="text-stone-500">mutual matches 💞</div></div>
+    </div>
+  </div>
+  <div class="md:col-span-2" id="add">
+    {% if not static %}
+    <form id="addForm" class="card p-6 space-y-3">
+      <div class="font-bold text-lg">Add a person</div>
+      <label class="block text-sm font-medium">LinkedIn profile
+        <input name="linkedin" required placeholder="https://www.linkedin.com/in/…" class="mt-1 w-full rounded-xl border border-rose-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-300"></label>
+      <label class="block text-sm font-medium">Public Instagram
+        <input name="instagram" required placeholder="https://www.instagram.com/…" class="mt-1 w-full rounded-xl border border-rose-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-300"></label>
+      <button class="w-full grad text-white font-semibold rounded-xl py-2.5">Create their agent &amp; start dating →</button>
+      <p id="addErr" class="text-sm text-rose-600 hidden"></p>
+      <p class="text-xs text-stone-500">It takes about 3–5 minutes: read both profiles → write the analysis → swipe → go on 3 live dates → rank.</p>
+    </form>
+    <script>
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target), err = document.getElementById('addErr');
+      err.classList.add('hidden');
+      const r = await fetch('/api/add', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({linkedin: f.get('linkedin'), instagram: f.get('instagram')})});
+      const j = await r.json();
+      if (j.redirect) location.href = j.redirect; else if (j.job) location.href = '/job/' + j.job; else { err.textContent = j.error || 'Something went wrong'; err.classList.remove('hidden'); }
+    });
+    </script>
+    {% else %}
+    <div class="card p-6"><div class="font-bold text-lg">This is the finished demo run</div><p class="text-sm text-stone-600 mt-2">{{ people|length }} real people, {{ dates|length }} agent dates, already run.</p>{% if live_url %}<a href="{{ live_url }}" class="mt-4 inline-block grad text-white font-semibold rounded-xl px-4 py-2">Add your own links on the live site →</a>{% endif %}</div>
+    {% endif %}
+  </div>
+</section>
+
+{% if mutual %}
+<section class="mt-12">
+  <h2 class="display text-2xl font-bold mb-4">💞 Mutual matches: both agents want a second date</h2>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{% for d in mutual[:6] %}{{ m.date_card(L, d, by_id) }}{% endfor %}</div>
+</section>
+{% endif %}
+
+<section class="mt-12" id="people">
+  <div class="flex items-end justify-between mb-4"><h2 class="display text-2xl font-bold">The people &amp; their agents</h2><a class="text-sm text-rose-600 font-medium" href="{{ L.rankings }}">See all rankings →</a></div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for p in people %}{% set pr = p.profile %}
+    <a href="{{ L.person(p.id) }}" class="card p-4 hover:shadow-md transition flex gap-4">
+      {{ m.avatar(L, p.id, pr.name, 16) }}
+      <div class="min-w-0">
+        <div class="font-semibold truncate">{{ pr.name }}</div>
+        <div class="text-xs text-stone-500 line-clamp-2">{{ pr.headline }}</div>
+        <div class="text-sm mt-1.5 italic text-stone-700 line-clamp-2">“{{ pr.vibe }}”</div>
+        <div class="mt-2 flex flex-wrap gap-1">{% for h in (pr.hobbies or [])[:3] %}<span class="chip">{{ h.name }}</span>{% endfor %}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+{% if dates %}
+<section class="mt-12">
+  <div class="flex items-end justify-between mb-4"><h2 class="display text-2xl font-bold">Latest agent dates</h2><a class="text-sm text-rose-600 font-medium" href="{{ L.dates }}">All {{ dates|length }} dates →</a></div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{% for d in dates[-6:]|reverse %}{{ m.date_card(L, d, by_id) }}{% endfor %}</div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}How it works · Cupid Agents{% endblock %}
+{% block body %}
+<h1 class="display text-3xl font-bold">How it works</h1>
+<p class="text-stone-600 mt-2 max-w-3xl">Each person is represented by one AI agent. The agent only ever knows two things about its person: their <b class="src-li">LinkedIn</b> and their <b class="src-ig">Instagram</b>. It reads both, writes the profile, then dates other agents on its person's behalf and reports back.</p>
+
+<div class="grid md:grid-cols-5 gap-4 mt-8 text-sm">
+  {% for n, t, d in [
+    ('1','Scrape','A real Chrome, logged in once by the operator, is driven over the DevTools protocol (Playwright). Instagram: we capture the JSON the Instagram web app itself loads (profile + about 36 recent posts with captions, locations, tags and image descriptions). LinkedIn: the rendered profile page and recent activity.'),
+    ('2','Read','The analysis agent reads both sources and writes a structured, evidence-cited profile: needs, hobbies, interests, values, personality, voice, lifestyle, green flags, friction and dealbreakers. Every claim is tagged with the source it came from.'),
+    ('3','Swipe','Every agent scores every other public card for fit with its own person (0–100, with a reason). That gives a two-sided score matrix, and the best mutual pairs get scheduled for dates.'),
+    ('4','Date','The initiating agent picks a venue that suits both people. The two agents then talk turn by turn, each in its own LLM call with only its own private brief. Each writes what it says plus a private note to its person.'),
+    ('5','Report & rank','After the date, each agent privately scores chemistry, values, lifestyle and needs met, and decides on a second date. Rankings blend the date verdicts with the swipe scores, for every pair.')] %}
+  <div class="card p-4"><div class="w-8 h-8 rounded-xl grad text-white grid place-items-center font-bold">{{ n }}</div><div class="font-bold mt-2">{{ t }}</div><p class="text-stone-600 mt-1">{{ d }}</p></div>{% endfor %}
+</div>
+
+<div class="grid md:grid-cols-2 gap-6 mt-8">
+  <section class="card p-6"><h2 class="font-bold text-lg">Why the dates are real multi-agent conversations</h2>
+    <ul class="list-disc pl-5 mt-2 text-sm text-stone-700 space-y-1">
+      <li>Two separate agents, each with a private system prompt: its own person's full analysis, their needs and dealbreakers, and their voice samples. About the other person, it knows only their public card and what's said on the date.</li>
+      <li>Every message is a separate model call with a mission: have a good date, and find out whether this person meets <i>my person's</i> needs.</li>
+      <li>The agents can't invent facts. They may only share stories that appear in their person's sources.</li>
+      <li>Each agent's verdict is written privately, without seeing the other agent's verdict.</li>
+    </ul></section>
+  <section class="card p-6"><h2 class="font-bold text-lg">Stack</h2>
+    <ul class="list-disc pl-5 mt-2 text-sm text-stone-700 space-y-1">
+      <li><b>Scraping:</b> Playwright over CDP, driving a logged-in Chrome. Instagram's own GraphQL responses are intercepted; the LinkedIn profile and activity pages are rendered and read. There's a fallback to logged-out endpoints, and Apify actors are supported as an optional source (<code>kit/</code>).</li>
+      <li><b>Agents:</b> Python orchestration, with a pluggable LLM chain (Claude via Claude Code headless, Gemini, Groq, Cerebras, OpenRouter) and JSON-structured turns.</li>
+      <li><b>Web:</b> FastAPI + Jinja + Tailwind, live progress over Server-Sent Events, SQLite storage.</li>
+      <li><b>Guardrails:</b> the two sources only, no sensitive-trait inference, dates kept PG, all inferences labelled.</li>
+    </ul></section>
+</div>
+{% endblock %}

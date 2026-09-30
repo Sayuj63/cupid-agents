@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% import "_m.html" as m %}
+{% block title %}Rankings · Cupid Agents{% endblock %}
+{% block body %}
+<h1 class="display text-3xl font-bold">Who fits each person best</h1>
+<p class="text-stone-600 mt-1 max-w-3xl">The ranking covers everyone else in the pool. <b>Dated</b> pairs are scored mostly from both agents' private post-date reports (the geometric mean of the two ratings, plus a bonus if both want a second date 💞). Pairs that haven't dated are ranked from both agents' swipe scores and discounted slightly for uncertainty.</p>
+<div class="mt-6 space-y-4">
+{% for p in people %}{% set rows = ranks.get(p.id, []) %}
+<details class="card p-4 group" id="r-{{ p.id }}" {% if loop.index <= 3 %}open{% endif %}>
+  <summary class="flex items-center gap-4 cursor-pointer list-none">
+    {{ m.avatar(L, p.id, p.profile.name, 12) }}
+    <div class="w-48 shrink-0"><a href="{{ L.person(p.id) }}" class="font-semibold hover:underline">{{ p.profile.name }}</a><div class="text-xs text-stone-500 truncate">{{ p.profile.headline }}</div></div>
+    <div class="flex-1 flex gap-3 overflow-x-auto">{% for r in rows[:5] %}
+      <div class="flex items-center gap-2 bg-rose-50 rounded-full pl-1 pr-3 py-1 shrink-0">{{ m.avatar(L, r.id, r.name, 7) }}<span class="text-xs font-medium">#{{ loop.index }} {{ r.name.split(' ')[0] }}</span><span class="text-xs font-bold text-rose-600">{{ r.score }}</span>{% if r.mutual %}<span>💞</span>{% endif %}</div>{% endfor %}</div>
+    <span class="text-stone-400 group-open:rotate-90 transition">▶</span>
+  </summary>
+  <table class="w-full text-sm mt-4">
+    <thead><tr class="text-left text-xs text-stone-500"><th class="py-1 w-8">#</th><th>Match</th><th>Score</th><th>Date</th><th class="hidden md:table-cell">Why</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr class="border-t border-rose-50"><td class="py-1.5 text-stone-400">{{ loop.index }}</td>
+        <td><a class="flex items-center gap-2 hover:underline" href="{{ L.person(r.id) }}">{{ m.avatar(L, r.id, r.name, 6) }}{{ r.name }}</a></td>
+        <td class="font-bold">{{ r.score }}</td>
+        <td>{% if r.dated %}<a class="text-rose-600 hover:underline" href="{{ L.date(r.date_id) }}">{{ r.my_rating }}/10 · {{ r.their_rating }}/10 {% if r.mutual %}💞{% endif %}</a>{% else %}<span class="text-stone-400">predicted {{ r.predicted }}</span>{% endif %}</td>
+        <td class="hidden md:table-cell text-xs text-stone-500">{{ r.reason }}</td></tr>{% endfor %}</tbody>
+  </table>
+</details>
+{% endfor %}
+</div>
+{% endblock %}
